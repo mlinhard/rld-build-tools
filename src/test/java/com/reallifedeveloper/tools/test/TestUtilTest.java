@@ -87,7 +87,7 @@ public class TestUtilTest {
 
     @Test
     public void writeToFile() throws Exception {
-        String filename = System.getProperty("java.io.tmpdir") + "junitWriteToFile.txt";
+        String filename = System.getProperty("java.io.tmpdir") + "/junitWriteToFile.txt";
         String s = "foo" + System.lineSeparator() + "bar" + System.lineSeparator() + "\u03B1\u03B2\u03B3";
         TestUtil.writeToFile(s, filename, "UTF-8");
         List<String> lines = Files.readAllLines(Paths.get(filename), StandardCharsets.UTF_8);
@@ -99,7 +99,7 @@ public class TestUtilTest {
 
     @Test
     public void writeToReadOnlyFile() throws Exception {
-        String filename = System.getProperty("java.io.tmpdir") + "junitWriteToReadOnlyFile.txt";
+        String filename = System.getProperty("java.io.tmpdir") + "/junitWriteToReadOnlyFile.txt";
         File file = new File(filename);
         file.createNewFile();
         file.setWritable(false);
@@ -113,7 +113,7 @@ public class TestUtilTest {
 
     @Test
     public void writeToFileIllegalCharSetName() throws Exception {
-        String filename = System.getProperty("java.io.tmpdir") + "junitWriteToFile.txt";
+        String filename = System.getProperty("java.io.tmpdir") + "/junitWriteToFile.txt";
         expectedException.expect(UnsupportedEncodingException.class);
         expectedException.expectMessage("bar");
         TestUtil.writeToFile("foo", filename, "bar");
