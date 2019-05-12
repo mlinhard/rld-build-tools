@@ -10,8 +10,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.persistence.EmbeddedId;
+import javax.persistence.EntityNotFoundException;
 import javax.persistence.Id;
 
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -125,12 +127,12 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
      * @throws IllegalArgumentException if either argument is <code>null</code>, or if more
      * than one entity with the given value is found
      */
-    protected <F> T findByUniqueField(String fieldName, F value) {
+    protected <F> Optional<T> findByUniqueField(String fieldName, F value) {
         List<T> foundEntities = findByField(fieldName, value);
         if (foundEntities.isEmpty()) {
-            return null;
+            return Optional.empty();
         } else if (foundEntities.size() == 1) {
-            return foundEntities.get(0);
+            return Optional.of(foundEntities.get(0));
         } else {
             throw new IllegalArgumentException("Field " + fieldName + " is not unique, found "
                     + foundEntities.size() + " entities: " + foundEntities);
@@ -149,8 +151,8 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
      * {@inheritDoc}
      */
     @Override
-    public void delete(ID id) {
-        if (id == null) {
+    public void deleteById(ID id) {
+    	if (id == null) {
             throw new IllegalArgumentException("id must not be null");
         }
         T removedEntity = entities.remove(id);
@@ -163,8 +165,8 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
      * {@inheritDoc}
      */
     @Override
-    public void delete(Iterable<? extends T> entitiesToDelete) {
-        if (entitiesToDelete == null) {
+    public void deleteAll(Iterable<? extends T> entitiesToDelete) {
+         if (entitiesToDelete == null) {
             throw new IllegalArgumentException("entitiesToDelete must not be null");
         }
         for (T entity : entitiesToDelete) {
@@ -195,7 +197,7 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
      * {@inheritDoc}
      */
     @Override
-    public boolean exists(ID id) {
+    public boolean existsById(ID id) {
         if (id == null) {
             throw new IllegalArgumentException("id must not be null");
         }
@@ -214,16 +216,15 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
      * {@inheritDoc}
      */
     @Override
-    public List<T> findAll(Iterable<ID> ids) {
+    public List<T> findAllById(Iterable<ID> ids) {
         if (ids == null) {
             throw new IllegalArgumentException("ids must not be null");
         }
         List<T> selectedEntities = new ArrayList<T>();
         for (ID id : ids) {
-            T selectedEntity = findOne(id);
-            if (selectedEntity != null) {
+            findById(id).ifPresent(selectedEntity -> {
                 selectedEntities.add(selectedEntity);
-            }
+            });
         }
         return selectedEntities;
     }
@@ -253,7 +254,7 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
      */
     @Override
     public void deleteInBatch(Iterable<T> entitiesToDelete) {
-        delete(entitiesToDelete);
+        deleteAll(entitiesToDelete);
     }
 
     /**
@@ -289,11 +290,11 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
      * {@inheritDoc}
      */
     @Override
-    public T findOne(ID id) {
-        if (id == null) {
+    public Optional<T> findById(ID id) {
+    	if (id == null) {
             throw new IllegalArgumentException("id must not be null");
         }
-        return entities.get(id);
+        return Optional.ofNullable(entities.get(id));
     }
 
     /**
@@ -301,15 +302,15 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
      */
     @Override
     public T getOne(ID id) {
-        return findOne(id);
+        return findById(id).orElseThrow(() -> new EntityNotFoundException());
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public <S extends T> List<S> save(Iterable<S> entitiesToSave) {
-        if (entitiesToSave == null) {
+    public <S extends T> List<S> saveAll(Iterable<S> entitiesToSave) {
+    	if (entitiesToSave == null) {
             throw new IllegalArgumentException("entitiesToSave must not be null");
         }
         List<S> savedEntities = new ArrayList<>();
@@ -486,16 +487,9 @@ public class InMemoryJpaRepository<T, ID extends Serializable & Comparable<ID>> 
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * This method is not yet implemented, so it always throws an exception.
-     *
-     * @throws UnsupportedOperationException always
-     */
     @Override
-    public <S extends T> S findOne(Example<S> example) {
-        throw new UnsupportedOperationException("Not yet implemented");
+    public <S extends T> Optional<S> findOne(Example<S> example) {
+    	 throw new UnsupportedOperationException("Not yet implemented");
     }
 
 }

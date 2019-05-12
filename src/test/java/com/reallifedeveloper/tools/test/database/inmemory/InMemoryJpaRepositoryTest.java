@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EntityNotFoundException;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 
@@ -95,13 +96,13 @@ public class InMemoryJpaRepositoryTest {
         repository.save(new TestEntityWithFieldAnnotations(1, "foo"));
         repository.save(new TestEntityWithFieldAnnotations(2, "bar"));
         repository.save(new TestEntityWithFieldAnnotations(3, "baz"));
-        TestEntityWithFieldAnnotations entity = repository.findByUniqueField("name", "foo");
+        TestEntityWithFieldAnnotations entity = repository.findByUniqueField("name", "foo").orElse(null);
         Assert.assertEquals("Wrong id for 'foo' entity: ", 1, entity.getId().longValue());
         Assert.assertEquals("Wrong name for 'foo' entity: ", "foo", entity.getName());
-        entity = repository.findByUniqueField("name", "bar");
+        entity = repository.findByUniqueField("name", "bar").orElse(null);
         Assert.assertEquals("Wrong id for 'bar' entity: ", 2, entity.getId().longValue());
         Assert.assertEquals("Wrong name for 'bar' entity: ", "bar", entity.getName());
-        entity = repository.findByUniqueField("name", "baz");
+        entity = repository.findByUniqueField("name", "baz").orElse(null);
         Assert.assertEquals("Wrong id for 'baz' entity: ", 3, entity.getId().longValue());
         Assert.assertEquals("Wrong name for 'baz' entity: ", "baz", entity.getName());
     }
@@ -109,7 +110,7 @@ public class InMemoryJpaRepositoryTest {
     @Test
     public void findByUniqueFieldNotFound() {
         repository.save(new TestEntityWithFieldAnnotations(1, "foo"));
-        Assert.assertNull("'bar' entity should not be found", repository.findByUniqueField("name", "bar"));
+        Assert.assertNull("'bar' entity should not be found", repository.findByUniqueField("name", "bar").orElse(null));
     }
 
     @Test
@@ -138,7 +139,7 @@ public class InMemoryJpaRepositoryTest {
     public void deleteNullId() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("id must not be null");
-        repository.delete((Integer) null);
+        repository.deleteById((Integer) null);
     }
 
     @Test
@@ -146,7 +147,7 @@ public class InMemoryJpaRepositoryTest {
         Assert.assertEquals(0, repository.count());
         repository.save(new TestEntityWithFieldAnnotations(1, "foo"));
         Assert.assertEquals(1, repository.count());
-        repository.delete(1);
+        repository.deleteById(1);
         Assert.assertEquals(0, repository.count());
     }
 
@@ -154,14 +155,14 @@ public class InMemoryJpaRepositoryTest {
     public void deleteNonExistingId() {
         expectedException.expect(EmptyResultDataAccessException.class);
         expectedException.expectMessage("Entity with id -1 not found");
-        repository.delete(-1);
+        repository.deleteById(-1);
     }
 
     @Test
     public void deleteNullEntities() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("entitiesToDelete must not be null");
-        repository.delete((Iterable<TestEntityWithFieldAnnotations>) null);
+        repository.deleteAll((Iterable<TestEntityWithFieldAnnotations>) null);
     }
 
     @Test
@@ -176,13 +177,13 @@ public class InMemoryJpaRepositoryTest {
         TestEntityWithFieldAnnotations foo = new TestEntityWithFieldAnnotations(1, "foo");
         TestEntityWithFieldAnnotations bar = new TestEntityWithFieldAnnotations(2, "bar");
         TestEntityWithFieldAnnotations baz = new TestEntityWithFieldAnnotations(3, "baz");
-        repository.save(Arrays.asList(new TestEntityWithFieldAnnotations[] { foo, bar, baz }));
+        repository.saveAll(Arrays.asList(new TestEntityWithFieldAnnotations[] { foo, bar, baz }));
         Assert.assertEquals(3, repository.count());
-        repository.delete(Arrays.asList(new TestEntityWithFieldAnnotations[] { bar }));
+        repository.deleteAll(Arrays.asList(new TestEntityWithFieldAnnotations[] { bar }));
         Assert.assertEquals(2, repository.count());
-        repository.delete(Arrays.asList(new TestEntityWithFieldAnnotations[] { foo, baz }));
+        repository.deleteAll(Arrays.asList(new TestEntityWithFieldAnnotations[] { foo, baz }));
         Assert.assertEquals(0, repository.count());
-        repository.delete(Arrays.asList(new TestEntityWithFieldAnnotations[] { bar }));
+        repository.deleteAll(Arrays.asList(new TestEntityWithFieldAnnotations[] { bar }));
         Assert.assertEquals(0, repository.count());
     }
 
@@ -191,7 +192,7 @@ public class InMemoryJpaRepositoryTest {
         TestEntityWithFieldAnnotations foo = new TestEntityWithFieldAnnotations(1, "foo");
         TestEntityWithFieldAnnotations bar = new TestEntityWithFieldAnnotations(2, "bar");
         TestEntityWithFieldAnnotations baz = new TestEntityWithFieldAnnotations(3, "baz");
-        repository.save(Arrays.asList(new TestEntityWithFieldAnnotations[] { foo, bar, baz }));
+        repository.saveAll(Arrays.asList(new TestEntityWithFieldAnnotations[] { foo, bar, baz }));
         Assert.assertEquals(3, repository.count());
         repository.deleteInBatch(Arrays.asList(new TestEntityWithFieldAnnotations[] { bar }));
         Assert.assertEquals(2, repository.count());
@@ -242,15 +243,15 @@ public class InMemoryJpaRepositoryTest {
     public void existsNullId() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("id must not be null");
-        repository.exists((Integer) null);
+        repository.existsById((Integer) null);
     }
 
     @Test
     public void exists() {
-        Assert.assertFalse("Nothing should be found", repository.exists(1));
+        Assert.assertFalse("Nothing should be found", repository.existsById(1));
         repository.save(new TestEntityWithFieldAnnotations(1, "foo"));
-        Assert.assertTrue("Entity 1 should be found", repository.exists(1));
-        Assert.assertFalse("Entity 2 should not be found", repository.exists(2));
+        Assert.assertTrue("Entity 1 should be found", repository.existsById(1));
+        Assert.assertFalse("Entity 2 should not be found", repository.existsById(2));
     }
 
     @Test
@@ -268,7 +269,7 @@ public class InMemoryJpaRepositoryTest {
     public void findAllNullIds() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ids must not be null");
-        repository.findAll((Iterable<Integer>) null);
+        repository.findAllById((Iterable<Integer>) null);
     }
 
     @Test
@@ -279,7 +280,7 @@ public class InMemoryJpaRepositoryTest {
         repository.save(foo);
         repository.save(bar);
         repository.save(baz);
-        Iterable<TestEntityWithFieldAnnotations> entities = repository.findAll(Arrays.asList(new Integer[] {}));
+        Iterable<TestEntityWithFieldAnnotations> entities = repository.findAllById(Arrays.asList(new Integer[] {}));
         Assert.assertEquals(0, size(entities));
     }
 
@@ -291,7 +292,7 @@ public class InMemoryJpaRepositoryTest {
         repository.save(foo);
         repository.save(bar);
         repository.save(baz);
-        Iterable<TestEntityWithFieldAnnotations> entities = repository.findAll(Arrays.asList(new Integer[] { 1, 2 }));
+        Iterable<TestEntityWithFieldAnnotations> entities = repository.findAllById(Arrays.asList(new Integer[] { 1, 2 }));
         Assert.assertTrue("findAll should contain entity foo", find(foo, entities));
         Assert.assertTrue("findAll should contain entity bar", find(bar, entities));
         Assert.assertFalse("findAll should not contain entity baz", find(baz, entities));
@@ -302,7 +303,7 @@ public class InMemoryJpaRepositoryTest {
         TestEntityWithFieldAnnotations foo = new TestEntityWithFieldAnnotations(1, "foo");
         repository.save(foo);
         Iterable<TestEntityWithFieldAnnotations> entities =
-                repository.findAll(Arrays.asList(new Integer[] { -1, -2 }));
+                repository.findAllById(Arrays.asList(new Integer[] { -1, -2 }));
         Assert.assertFalse("findAll should not contain entity foo", find(foo, entities));
     }
 
@@ -324,12 +325,12 @@ public class InMemoryJpaRepositoryTest {
     public void findOneNullId() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("id must not be null");
-        repository.findOne((Integer) null);
+        repository.findById((Integer) null);
     }
 
     @Test
     public void findOneEmpty() {
-        Assert.assertNull("Entity 1 should not be found", repository.findOne(1));
+        Assert.assertNull("Entity 1 should not be found", repository.findById(1).orElse(null));
     }
 
     @Test
@@ -338,20 +339,28 @@ public class InMemoryJpaRepositoryTest {
         TestEntityWithFieldAnnotations bar = new TestEntityWithFieldAnnotations(2, "bar");
         repository.save(foo);
         repository.save(bar);
-        Assert.assertEquals("Entity 1 should be found", foo, repository.findOne(1));
-        Assert.assertEquals("Entity 2 should be found", bar, repository.findOne(2));
-        Assert.assertNull("Entity 3 should not be found", repository.findOne(3));
+        Assert.assertEquals("Entity 1 should be found", foo, repository.findById(1).orElse(null));
+        Assert.assertEquals("Entity 2 should be found", bar, repository.findById(2).orElse(null));
+        Assert.assertNull("Entity 3 should not be found", repository.findById(3).orElse(null));
+    }
+
+    @Test
+    public void getOneNotFound() {
+        expectedException.expect(EntityNotFoundException.class);
+        repository.getOne(1);
     }
 
     @Test
     public void getOne() {
-        // In the implementation of InMemoryJpaRepository, getOne is identical to findOne. Is this correct?
-        Assert.assertNull("Entity 1 should not be found", repository.getOne(1));
         TestEntityWithFieldAnnotations foo = new TestEntityWithFieldAnnotations(1, "foo");
         repository.save(foo);
         Assert.assertEquals("Entity 1 should be found", foo, repository.getOne(1));
-        Assert.assertNull("Entity 3 should not be found", repository.getOne(3));
-
+        try {
+            repository.getOne(3);
+            Assert.fail("Should have thrown excepition");
+        } catch (EntityNotFoundException e) {
+            // ok
+        }
     }
 
     @Test
@@ -365,7 +374,7 @@ public class InMemoryJpaRepositoryTest {
     public void saveNullEntities() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("entitiesToSave must not be null");
-        repository.save((Iterable<TestEntityWithFieldAnnotations>) null);
+        repository.saveAll((Iterable<TestEntityWithFieldAnnotations>) null);
     }
 
     @Test
@@ -413,15 +422,15 @@ public class InMemoryJpaRepositoryTest {
         repository.save(foo);
         Assert.assertEquals(1, repository.count());
         List<TestEntityWithFieldAnnotations> entities = new ArrayList<>();
-        repository.save(entities);
+        repository.saveAll(entities);
         Assert.assertEquals(1, repository.count());
         entities.add(bar);
         entities.add(baz);
-        repository.save(entities);
+        repository.saveAll(entities);
         Assert.assertEquals(3, repository.count());
-        Assert.assertEquals("Entity 1 should be found", foo, repository.findOne(1));
-        Assert.assertEquals("Entity 2 should be found", bar, repository.findOne(2));
-        Assert.assertEquals("Entity 3 should be found", baz, repository.findOne(3));
+        Assert.assertEquals("Entity 1 should be found", foo, repository.findById(1).orElse(null));
+        Assert.assertEquals("Entity 2 should be found", bar, repository.findById(2).orElse(null));
+        Assert.assertEquals("Entity 3 should be found", baz, repository.findById(3).orElse(null));
     }
 
     @Test
@@ -434,9 +443,9 @@ public class InMemoryJpaRepositoryTest {
     @Test
     public void saveAndFlush() {
         TestEntityWithFieldAnnotations foo = new TestEntityWithFieldAnnotations(1, "foo");
-        Assert.assertNull("Entity 1 should not be found", repository.findOne(1));
+        Assert.assertNull("Entity 1 should not be found", repository.findById(1).orElse(null));
         repository.saveAndFlush(foo);
-        Assert.assertEquals("Entity 1 should not be found", foo, repository.findOne(1));
+        Assert.assertEquals("Entity 1 should not be found", foo, repository.findById(1).orElse(null));
     }
 
     @Test
@@ -446,8 +455,8 @@ public class InMemoryJpaRepositoryTest {
         TestEntityWithFieldAnnotations newFoo = new TestEntityWithFieldAnnotations(1, "frotz");
         newFoo = repository.save(newFoo);
         Assert.assertEquals(1, repository.count());
-        Assert.assertEquals("Entity frotz should be found", newFoo, repository.findOne(1));
-        Assert.assertEquals("Entity frotz has wrong name: ", "frotz", repository.findOne(1).getName());
+        Assert.assertEquals("Entity frotz should be found", newFoo, repository.findById(1).orElse(null));
+        Assert.assertEquals("Entity frotz has wrong name: ", "frotz", repository.findById(1).orElse(null).getName());
         Assert.assertFalse("Entity foo should not be found", find(foo, repository.findAll()));
     }
 
@@ -457,7 +466,7 @@ public class InMemoryJpaRepositoryTest {
         TestEntityWithMethodAnnotations foo = new TestEntityWithMethodAnnotations(1L, "foo");
         repo.save(foo);
         Assert.assertEquals(1, repo.count());
-        Assert.assertEquals("Entity 1 should be found", foo, repo.findOne(1L));
+        Assert.assertEquals("Entity 1 should be found", foo, repo.findById(1L).orElse(null));
     }
 
     @Test
@@ -474,7 +483,7 @@ public class InMemoryJpaRepositoryTest {
         ConcreteEntityWithFieldAnnotations foo = new ConcreteEntityWithFieldAnnotations(1, "foo");
         repo.save(foo);
         Assert.assertEquals(1, repo.count());
-        Assert.assertEquals("Entity 1 should be found", foo, repo.findOne(1));
+        Assert.assertEquals("Entity 1 should be found", foo, repo.findById(1).orElse(null));
     }
 
     @Test
@@ -483,7 +492,7 @@ public class InMemoryJpaRepositoryTest {
         ConcreteEntityWithMethodAnnotations foo = new ConcreteEntityWithMethodAnnotations(1, "foo");
         repo.save(foo);
         Assert.assertEquals(1, repo.count());
-        Assert.assertEquals("Entity 1 should be found", foo, repo.findOne(1));
+        Assert.assertEquals("Entity 1 should be found", foo, repo.findById(1).orElse(null));
     }
 
     @Test
